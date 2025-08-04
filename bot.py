@@ -25,7 +25,7 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
 class Form(StatesGroup):
-    size = State()
+  size = State()
     style = State()
     material = State()
     idea = State()
