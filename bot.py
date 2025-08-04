@@ -34,7 +34,7 @@ class Form(StatesGroup):
 async def start(message: types.Message):
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add("📸 Готовые кухни", "🧩 Собрать свою кухню")
-    await message.answer("Привет! Я бот Встройка Мебель.
+    await message.answer("Привет! Я бот Встройка Мебель.")
 Выберите действие:", reply_markup=keyboard)
 
 @dp.message(Text("📸 Готовые кухни"))
