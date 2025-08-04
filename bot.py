@@ -78,9 +78,6 @@ async def finish_form(message: types.Message, state: FSMContext):
     f"\nОт: @{message.from_user.username or 'Без username'}"
     )
 
-От: @{message.from_user.username or 'Без username'}"
-    )
-
     await bot.send_message(chat_id=ADMIN_ID, text=summary)
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
