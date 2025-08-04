@@ -10,8 +10,8 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 # === НАСТРОЙКИ ===
-TOKEN = "ТВОЙ_ТОКЕН"
-ADMIN_ID = 123456789  # ← Замени на свой Telegram ID
+TOKEN = "8327997405:AAE32BUJEImAtfYmPlyxmRAB8fcKRnC-Vh0"
+ADMIN_ID = 648338940
 SPREADSHEET_ID = "1KiICzYA44y9Y-emnUiA53VOt2jW0h_8FrdOP-DLRR6Y"
 
 # === Google Sheets ===
