@@ -4,7 +4,8 @@ from aiogram.types import ReplyKeyboardMarkup
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.filters import Command, Text
+from aiogram.dispatcher.filters import Text
+from aiogram.dispatcher.filters import Command
 from datetime import datetime
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
