@@ -70,18 +70,14 @@ async def finish_form(message: types.Message, state: FSMContext):
     data = await state.get_data()
 
     summary = (
-        f"🧾 Новая заявка:
+    f"🧾 Новая заявка:\n\n"
+    f"📐 Размеры: {data['size']}\n"
+    f"🎨 Стиль: {data['style']}\n"
+    f"🪵 Материал: {data['material']}\n"
+    f"💡 Идея: {data['idea']}\n"
+    f"\nОт: @{message.from_user.username or 'Без username'}"
+    )
 
-"
-        f"📐 Размеры: {data['size']}
-"
-        f"🎨 Стиль: {data['style']}
-"
-        f"🪵 Материал: {data['material']}
-"
-        f"💡 Идея: {data['idea']}
-"
-        f"
 От: @{message.from_user.username or 'Без username'}"
     )
 
