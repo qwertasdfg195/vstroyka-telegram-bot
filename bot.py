@@ -1,6 +1,8 @@
 import asyncio
+import os
+from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import ReplyKeyboardMarkup
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -9,14 +11,40 @@ from datetime import datetime
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-TOKEN = "8327997405:AAE32BUJEImAtfYmPlyxmRAB8fcKRnC-Vh0"
-ADMIN_ID = 648338940
-SPREADSHEET_ID = "1KiICzYA44y9Y-emnUiA53VOt2jW0h_8FrdOP-DLRR6Y"
+# Load environment variables from .env file
+load_dotenv()
+
+# Load configuration from environment variables
+TOKEN = os.getenv("BOT_TOKEN")
+ADMIN_ID = os.getenv("ADMIN_ID")
+SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
+
+# Validate required environment variables
+if not TOKEN:
+    raise ValueError("BOT_TOKEN environment variable is required")
+if not ADMIN_ID:
+    raise ValueError("ADMIN_ID environment variable is required")
+if not SPREADSHEET_ID:
+    raise ValueError("SPREADSHEET_ID environment variable is required")
+
+try:
+    ADMIN_ID = int(ADMIN_ID)
+except ValueError:
+    raise ValueError("ADMIN_ID must be a valid integer")
 
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/spreadsheets"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
-client = gspread.authorize(creds)
-sheet = client.open_by_key(SPREADSHEET_ID).sheet1
+
+# Initialize Google Sheets with error handling
+try:
+    creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+    client = gspread.authorize(creds)
+    sheet = client.open_by_key(SPREADSHEET_ID).sheet1
+except FileNotFoundError:
+    print("Error: credentials.json file not found. Please ensure the Google Service Account credentials file exists.")
+    sheet = None
+except Exception as e:
+    print(f"Error initializing Google Sheets: {e}")
+    sheet = None
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
@@ -29,14 +57,25 @@ class Form(StatesGroup):
 
 @dp.message(Command("start"))
 async def start(message: types.Message):
-    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add("📸 Готовые кухни", "🧩 Собрать свою кухню")
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📸 Готовые кухни")],
+            [KeyboardButton(text="🧩 Собрать свою кухню")]
+        ],
+        resize_keyboard=True
+    )
     await message.answer("Привет! Я бот Встройка Мебель.\nВыберите действие:", reply_markup=keyboard)
 
 @dp.message(Text("📸 Готовые кухни"))
 async def send_catalog(message: types.Message):
-    with open("catalog.pdf", "rb") as pdf_file:
-        await message.answer_document(pdf_file, caption="📘 Наш каталог кухонь")
+    try:
+        with open("catalog.pdf", "rb") as pdf_file:
+            await message.answer_document(pdf_file, caption="📘 Наш каталог кухонь")
+    except FileNotFoundError:
+        await message.answer("Извините, каталог временно недоступен. Обратитесь к администратору.")
+    except Exception as e:
+        print(f"Error sending catalog: {e}")
+        await message.answer("Произошла ошибка при отправке каталога. Попробуйте позже.")
 
 @dp.message(Text("🧩 Собрать свою кухню"))
 async def start_form(message: types.Message, state: FSMContext):
@@ -75,11 +114,22 @@ async def finish_form(message: types.Message, state: FSMContext):
         f"\nОт: @{message.from_user.username or 'Без username'}"
     )
 
-    await bot.send_message(chat_id=ADMIN_ID, text=summary)
+    # Send notification to admin with error handling
+    try:
+        await bot.send_message(chat_id=ADMIN_ID, text=summary)
+    except Exception as e:
+        print(f"Error sending message to admin: {e}")
 
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
-    row = [now, message.from_user.username or "Без username", data['size'], data['style'], data['material'], data['idea']]
-    sheet.append_row(row)
+    # Save to Google Sheets with error handling
+    if sheet is not None:
+        try:
+            now = datetime.now().strftime("%Y-%m-%d %H:%M")
+            row = [now, message.from_user.username or "Без username", data['size'], data['style'], data['material'], data['idea']]
+            sheet.append_row(row)
+        except Exception as e:
+            print(f"Error saving to Google Sheets: {e}")
+    else:
+        print("Warning: Google Sheets not available, data not saved to spreadsheet")
 
     await message.answer("Спасибо! Ваша заявка отправлена.")
     await state.clear()
