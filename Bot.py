@@ -1,4 +1,6 @@
 import asyncio
+import os
+
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, FSInputFile
 from aiogram.fsm.state import State, StatesGroup
@@ -8,18 +10,37 @@ from aiogram.filters import Command
 from datetime import datetime
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from dotenv import load_dotenv
 
-TOKEN = "8327997405:AAE32BUJEImAtfYmPlyxmRAB8fcKRnC-Vh0"
-ADMIN_ID = 648338940
-SPREADSHEET_ID = "1KiICzYA44y9Y-emnUiA53VOt2jW0h_8FrdOP-DLRR6Y"
+load_dotenv()
+
+TOKEN = os.getenv("BOT_TOKEN")
+ADMIN_ID = os.getenv("ADMIN_ID")
+SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
+
+if not TOKEN or not ADMIN_ID or not SPREADSHEET_ID:
+    raise ValueError(
+        "BOT_TOKEN, ADMIN_ID and SPREADSHEET_ID must be provided in environment variables"
+    )
+
+ADMIN_ID = int(ADMIN_ID)
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-credentials = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
-client = gspread.authorize(credentials)
-sheet = client.open_by_key(SPREADSHEET_ID).sheet1
+scope = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive",
+]
+try:
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(
+        "credentials.json", scope
+    )
+    client = gspread.authorize(credentials)
+    sheet = client.open_by_key(SPREADSHEET_ID).sheet1
+except Exception as e:
+    print(f"Failed to connect to Google Sheets: {e}")
+    sheet = None
 
 # ====== Кнопки ======
 BACK_BTN = "🔙 В меню"
@@ -166,13 +187,20 @@ async def finish_form(message: types.Message, state: FSMContext):
     row = [
         now,
         message.from_user.username or "Без username",
-        data.get('size'),
-        data.get('shape'),
-        data.get('style'),
-        data.get('material'),
-        data.get('idea')
+        data.get("size"),
+        data.get("shape"),
+        data.get("style"),
+        data.get("material"),
+        data.get("idea"),
     ]
-    sheet.append_row(row)
+
+    if sheet:
+        try:
+            sheet.append_row(row)
+        except Exception as e:
+            print(f"Ошибка записи в Google Sheets: {e}")
+    else:
+        print("Google Sheets не настроен, пропуск записи заявки")
 
     await message.answer("Спасибо! Ваша заявка отправлена.")
     await state.clear()
